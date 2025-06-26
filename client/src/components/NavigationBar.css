@@ -1,0 +1,20 @@
+.tabs {
+  display: flex;
+  border-bottom: 2px solid #ddd;
+}
+
+.tabs button {
+  padding: 1vw 10vw;
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  color: #888;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px; /* 下線を親要素のborderに重ねる */
+}
+
+.tabs button.tab-active {
+  color: #333;
+  border-bottom-color: orange;
+}
