@@ -19,11 +19,6 @@ function WritingModal({ cart, products, onClose, onPurchaseComplete }) {
 
   // APIへデータを送信する関数
   const handleSubmit = async () => {
-    // // 入力チェック
-    // if (!customerDetail || !gender || !customerType) {
-    //   alert('すべての項目を入力してください。');
-    //   return;
-    // }
 
     // 送信するデータ（ペイロード）を作成
     const payload = {
@@ -36,7 +31,6 @@ function WritingModal({ cart, products, onClose, onPurchaseComplete }) {
     };
 
     console.log('APIに送信するデータ:', payload);
-    onClose();
 
     try {
       // fetchを使ってバックエンドAPIにPOSTリクエストを送信
@@ -48,8 +42,6 @@ function WritingModal({ cart, products, onClose, onPurchaseComplete }) {
         },
         body: JSON.stringify(payload),
       });
-
-      // onPurchaseComplete();
 
       if (response.ok) {
         alert('登録が完了しました。');
