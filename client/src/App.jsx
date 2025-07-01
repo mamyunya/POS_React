@@ -12,6 +12,10 @@ const mockProducts = [
   { id: 4, name: 'cc', price: 800 },
 ];
 
+// const salesRecode = [
+//   { id: 1, created_at: '2025-04-05-12:00:00', aa: 0, as: 0,bb: 1, cc:2, customer_detail: "white", gender: "female", customer_type: "student"}
+// ];
+
 function App() {
   // 選択中のタブを管理するState
   const [activeTab, setActiveTab] = useState('purchase');

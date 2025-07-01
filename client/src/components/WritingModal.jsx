@@ -49,19 +49,19 @@ function WritingModal({ cart, products, onClose, onPurchaseComplete }) {
         body: JSON.stringify(payload),
       });
 
-      onPurchaseComplete();
+      // onPurchaseComplete();
 
-    //   if (response.ok) {
-    //     alert('登録が完了しました。');
-    //     onPurchaseComplete(); //  親コンポーネントに完了を通知
-    //   } else {
-    //     // サーバーからのエラーレスポンスを処理
-    //     const errorData = await response.json();
-    //     alert(`登録に失敗しました: ${errorData.message || '不明なエラー'}`);
-    //   }
+      if (response.ok) {
+        alert('登録が完了しました。');
+        onPurchaseComplete(); //  親コンポーネントに完了を通知
+      } else {
+        // サーバーからのエラーレスポンスを処理
+        const errorData = await response.json();
+        alert(`登録に失敗しました: ${errorData.message || '不明なエラー'}`);
+      }
     } catch (error) {
-    //   console.error('API送信中にエラーが発生しました:', error);
-    //   alert('通信エラーが発生しました。');
+      console.error('API送信中にエラーが発生しました:', error);
+      alert('通信エラーが発生しました。');
     }
   };
 

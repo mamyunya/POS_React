@@ -1,0 +1,81 @@
+# pos-system/docker-compose.yml
+
+services:
+  # 1. バックエンドサービス (Node.js + Express)
+  server:
+    build:
+      context: ./server # serverディレクトリのDockerfileを使用
+    container_name: pos_server
+    ports:
+      - "3000:3000" # ホストの3000番をコンテナの3000番に繋ぐ
+    volumes:
+      - ./server:/usr/src/app # ソースコードを同期
+      - /usr/src/app/node_modules # node_modulesは同期対象から除外
+    env_file:
+      - ./server/.env # .envファイルを環境変数として読み込む
+    depends_on:
+      - db # dbサービスが起動してからserverを起動する
+    command: npm run dev # コンテナ起動時に実行するコマンド
+    networks:
+      - pos-network
+
+  # 2. フロントエンドサービス (Vite + React)
+  client:
+    build:
+      context: ./client # clientディレクトリのDockerfileを使用
+    container_name: pos_client
+    ports:
+      - "5173:5173" # Viteのデフォルトポート
+    volumes:
+      - ./client:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      - server # serverが起動してからclientを起動する
+    command: npm run dev
+    networks:
+      - pos-network
+
+  # 3. データベースサービス (PostgreSQL)
+  db:
+    image: postgres:17.5 # 公式のPostgreSQLイメージを使用
+    container_name: pos_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # DBデータを永続化
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=pos_system
+    networks:
+      - pos-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d postgres"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+
+  prisma-studio:
+    image: node:lts-alpine3.17
+    working_dir: /usr/src/app
+    volumes:
+      - ./server:/usr/src/app
+    command: npx prisma studio --port 5555 --browser none
+    ports:
+      - "5555:5555"
+    env_file:
+      - ./server/.env
+    networks:
+      - pos-network
+    depends_on:
+      db:
+        condition: service_healthy
+      server:
+        condition: service_started
+
+volumes:
+  postgres_data: # データを永続化するための名前付きボリューム
+
+networks:
+  pos-network:
+    name: pos-network

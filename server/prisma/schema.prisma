@@ -1,0 +1,49 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 商品モデル
+model Product {
+  id        Int      @id @default(autoincrement())
+  name      String
+  price     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  saleItems SaleItem[] // この商品が含まれる売上アイテムとの関連
+}
+
+// 売上モデル
+model Sale {
+  id            Int      @id @default(autoincrement())
+  totalAmount   Int
+  customerDetail String
+  gender        String
+  customerType  String
+  createdAt     DateTime @default(now())
+
+  saleItems SaleItem[] // この売上に含まれる商品アイテムとの関連
+}
+
+// 売上アイテムモデル (売上と商品の中間テーブル)
+// どの売上で、どの商品が、何個、いくらで売れたかを記録する
+model SaleItem {
+  id          Int @id @default(autoincrement())
+  saleId      Int
+  productId   Int
+  quantity    Int
+  priceAtSale Int // 売上時点での商品価格（後で商品価格が変更されても影響を受けないように）
+
+  sale    Sale    @relation(fields: [saleId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([saleId, productId]) // 同じ売上に同じ商品は1行だけ
+}
