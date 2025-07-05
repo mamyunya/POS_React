@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './WritingModal.css';
 
-function WritingModal({ cart, products, onClose, onPurchaseComplete }) {
+function WritingModal({ cart, products, API_BASE_URL, onClose, onPurchaseComplete }) {
   // ★ 1. Stateの定義
   const [totalAmount, setTotalAmount] = useState(0);
   const [customerDetail, setCustomerDetail] = useState(''); // 服装・整理番号など
@@ -20,14 +20,26 @@ function WritingModal({ cart, products, onClose, onPurchaseComplete }) {
   // APIへデータを送信する関数
   const handleSubmit = async () => {
 
+    const cartForApi = Object.fromEntries(
+    Object.entries(cart).map(([productId, quantity]) => {
+      const product = products.find(p => p.id === Number(productId));
+      return [
+        productId,
+        {
+          quantity: quantity,
+          price: product ? product.price : 0, // 売上時点での価格
+        }
+      ];
+    })
+  );
+
     // 送信するデータ（ペイロード）を作成
     const payload = {
-      cart: cart,
+      cart: cartForApi,
       customer_detail: customerDetail,
       gender: gender,
       customer_type: customerType,
       total_amount: totalAmount,
-      created_at: new Date().toISOString(), // 登録日時を追加
     };
 
     console.log('APIに送信するデータ:', payload);
@@ -35,7 +47,7 @@ function WritingModal({ cart, products, onClose, onPurchaseComplete }) {
     try {
       // fetchを使ってバックエンドAPIにPOSTリクエストを送信
       // エンドポイント '/api/sales' はご自身の環境に合わせて変更してください
-      const response = await fetch('/api/sales', {
+      const response = await fetch(`${API_BASE_URL}/sales`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

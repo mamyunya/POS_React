@@ -1,6 +1,13 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
+// SaleStatusの選択肢
+enum SaleStatus {
+  NON_COMMIT  // 調理前
+  IN_PROGRESS // 調理中
+  SERVED      // 提供済み
+}
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -30,6 +37,7 @@ model Sale {
   customerType  String
   createdAt     DateTime @default(now())
 
+  status         SaleStatus   @default(NON_COMMIT) //商品提供前後のステータス（デフォルトは調理前）
   saleItems SaleItem[] // この売上に含まれる商品アイテムとの関連
 }
 

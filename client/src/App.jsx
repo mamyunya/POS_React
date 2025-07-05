@@ -38,6 +38,9 @@ function App() {
   const [newProductName, setNewProductName] = useState('');
   const [newProductPrice, setNewProductPrice] = useState('');
 
+  //　売上履歴を管理するStateを追加
+  const [sales, setSales] = useState([]);
+
   
   const fetchProducts = useCallback(async () =>{
     setIsLoading(true); // データ取得開始
@@ -61,6 +64,26 @@ function App() {
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+
+  // 売上履歴を取得する関数を追加
+  const fetchSales = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API_BASE_URL}/sales`);
+      if (!response.ok) {
+        throw new Error('売上履歴の取得に失敗しました。');
+      }
+      const data = await response.json();
+      setSales(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
 
   // // WebSocketに接続し、サーバーからの通知を待つ (将来のため)
   // useEffect(() => {
@@ -119,9 +142,40 @@ function App() {
   };
 
 
+  const handleStatusChange = async (saleId, newStatus) => {
+    // 画面を即時反映させる「Optimistic UI Update」
+    setSales(currentSales =>
+      currentSales.map(sale =>
+        sale.id === saleId ? { ...sale, status: newStatus } : sale
+      )
+    );
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/sales/${saleId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!response.ok) {
+        throw new Error('ステータスの更新に失敗しました。');
+      }
+      // WebSocket経由で更新されるので、ここではfetchSales()を呼ばなくても良い
+    } catch (err) {
+      alert(err.message);
+      // エラーが起きたら元の状態に戻す
+      fetchSales(); 
+    }
+  };
+
+
+
   const handleTabChange = (tabName) => {
     setActiveTab(tabName);
-    // タブが変更されたときに、必要であれば追加のロジック（例: カートを空にする、別の状態をリセットするなど）
+    if (tabName === 'history') {
+      fetchSales(); // 売上履歴タブに戻ったら売上履歴を再取得
+    }else{
+      fetchProducts(); // 商品一覧タブに戻ったら商品リストを再取得
+    }
     // console.log(`タブが ${tabName} に変更されました`); // デバッグ用にログを出力
   };
 
@@ -165,17 +219,6 @@ function App() {
     setCart({}); // カートを空にする
     setIsWritingOpen(false); // モーダルを閉じる
   };
-
-
-  //   // 購入内容の確認（実際にはここでAPIを呼び出し、売上を記録する）
-  //   console.log('購入データ:', cart);
-  //   console.log('合計金額:', totalAmount);
-    
-  //   alert(`合計金額は ¥${totalAmount.toLocaleString()} です。\n購入処理を実行します。（コンソールを確認してください）`);
-    
-  //   // カートを空にする
-  //   setCart({});
-  // };
 
   const handleClosePayment = () => {
     setIsPaymentOpen(false); // お支払い画面を閉じる
@@ -280,6 +323,69 @@ function App() {
   };
 
 
+  // 売上履歴を描画するための関数
+  const renderSalesHistory = () => {
+    if (isLoading) return <div>読み込み中...</div>;
+    if (error) return <div className="error-message">エラー: {error}</div>;
+    if (sales.length === 0) return <div>売上履歴はまだありません。</div>;
+
+    return (
+      <table className="sales-table">
+        <thead>
+          <tr>
+            <th>取引日時</th>
+            <th>顧客情報</th>
+            <th>購入商品</th>
+            <th>合計金額</th>
+            <th>ステータス</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sales.map((sale) => (
+            <tr key={sale.id}>
+              <td>{new Date(sale.createdAt).toLocaleString('ja-JP')}</td>
+              <td>{`${sale.customerDetail} (${sale.gender}/${sale.customerType})`}</td>
+              <td>
+                <ul className="sale-items-list-in-table">
+                  {sale.saleItems.map((item) => (
+                    <li key={item.id}>
+                      {item.product.name} x {item.quantity}
+                    </li>
+                  ))}
+                </ul>
+              </td>
+              <td>¥{sale.totalAmount.toLocaleString()}</td>
+              <td>
+                <div className="status-buttons">
+                  <button
+                    onClick={() => handleStatusChange(sale.id, 'NON_COMMIT')}
+                    className={sale.status === 'NON_COMMIT' ? 'active' : ''}
+                  >
+                    調理前
+                  </button>
+                  <button
+                    onClick={() => handleStatusChange(sale.id, 'IN_PROGRESS')}
+                    className={sale.status === 'IN_PROGRESS' ? 'active' : ''}
+                  >
+                    調理中
+                  </button>
+                  <button
+                    onClick={() => handleStatusChange(sale.id, 'SERVED')}
+                    className={sale.status === 'SERVED' ? 'active' : ''}
+                  >
+                    提供済み
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  };
+
+
+
   return (
     <div className="container">
 
@@ -299,7 +405,7 @@ function App() {
         {activeTab === 'history' && (
           <div>
             <h2>売上履歴</h2>
-            <p>ここに売上履歴が表示されます。</p>
+              {renderSalesHistory()}
           </div>
         )}
 
@@ -312,7 +418,7 @@ function App() {
         )}
 
         {isPaymentOpen && <PaymentModal cart={cart} products={products} onClose={handleClosePayment} onOpen={handleOpenWriting}/>}
-        {isWritingOpen && <WritingModal cart={cart} products={products} onClose={handleCloseWriting} onPurchaseComplete={handlePurchaseComplete}/>}
+        {isWritingOpen && <WritingModal cart={cart} products={products} API_BASE_URL={API_BASE_URL} onClose={handleCloseWriting} onPurchaseComplete={handlePurchaseComplete}/>}
       </main>
     </div>
   );

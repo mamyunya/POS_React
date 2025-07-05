@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+//import { broadcast } from '../websocket.js';
 const prisma = new PrismaClient();
 
 // 売上履歴を取得する
@@ -41,5 +42,27 @@ export const createSale = async (req, res) => {
   } catch (error) {
     // console.error(error); // デバッグ用にエラー内容を表示
     res.status(500).json({ message: "エラーが発生しました。" });
+  }
+};
+
+
+// 売上ステータスを更新する
+export const updateSaleStatus = async (req, res) => {
+  try {
+    const { id } = req.params; // URLからsaleのIDを取得
+    const { status } = req.body; // リクエストボディから新しいステータスを取得
+
+    const updatedSale = await prisma.sale.update({
+      where: { id: Number(id) },
+      data: { status: status }, // statusフィールドを更新
+    });
+    
+
+    // ★ 変更を全クライアントに通知
+    //broadcast({ type: 'SALE_UPDATED' });
+
+    res.status(200).json(updatedSale);
+  } catch (error) {
+    res.status(500).json({ message: "ステータスの更新中にエラーが発生しました。" });
   }
 };
