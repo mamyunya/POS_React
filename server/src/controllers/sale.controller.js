@@ -20,7 +20,7 @@ export const createSale = async (req, res) => {
   try {
     // フロントから送られてきたデータを取得
     const { cart, customer_detail, gender, customer_type, total_amount } = req.body;
-    
+    const { userId } = req.user;
     // 売上本体と、売上の詳細(SaleItem)を同時に登録する
     const sale = await prisma.sale.create({
       data: {
@@ -28,6 +28,8 @@ export const createSale = async (req, res) => {
         customerDetail: customer_detail,
         gender: gender,
         customerType: customer_type,
+        userId: userId, // 誰が登録したかを記録するためのuserId
+        
         // 売上の詳細を作成
         saleItems: {
           create: Object.keys(cart).map(productId => ({

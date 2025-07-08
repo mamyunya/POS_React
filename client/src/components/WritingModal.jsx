@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './WritingModal.css';
 
-function WritingModal({ cart, products, API_BASE_URL, onClose, onPurchaseComplete }) {
+function WritingModal({ cart, products, API_BASE_URL, onClose, onPurchaseComplete, token }) {
   // ★ 1. Stateの定義
   const [totalAmount, setTotalAmount] = useState(0);
   const [customerDetail, setCustomerDetail] = useState(''); // 服装・整理番号など
@@ -46,11 +46,11 @@ function WritingModal({ cart, products, API_BASE_URL, onClose, onPurchaseComplet
 
     try {
       // fetchを使ってバックエンドAPIにPOSTリクエストを送信
-      // エンドポイント '/api/sales' はご自身の環境に合わせて変更してください
       const response = await fetch(`${API_BASE_URL}/sales`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(payload),
       });

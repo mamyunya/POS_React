@@ -38,6 +38,10 @@ model Sale {
   createdAt     DateTime @default(now())
 
   status         SaleStatus   @default(NON_COMMIT) //商品提供前後のステータス（デフォルトは調理前）
+  
+  userId         Int
+  user           User         @relation(fields: [userId], references: [id])
+  
   saleItems SaleItem[] // この売上に含まれる商品アイテムとの関連
 }
 
@@ -54,4 +58,14 @@ model SaleItem {
   product Product @relation(fields: [productId], references: [id])
 
   @@unique([saleId, productId]) // 同じ売上に同じ商品は1行だけ
+}
+
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique // ユーザー名は重複不可
+  password  String   
+  createdAt DateTime @default(now())
+
+  sales Sale[] // このユーザーが作成した売上一覧
 }

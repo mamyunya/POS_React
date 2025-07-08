@@ -3,6 +3,7 @@ import './App.css';
 import NavigationBar from './components/NavigationBar';
 import PaymentModal from './components/PaymentModal';
 import WritingModal from './components/WritingModal';
+import Auth from './components/Auth';
 
 // ★ バックエンドAPIのベースURLを定数として定義
 const API_BASE_URL = 'http://localhost:3000/api';
@@ -20,6 +21,8 @@ const API_BASE_URL = 'http://localhost:3000/api';
 // ];
 
 function App() {
+  // トークンを管理するState 初期値はlocalStorageから取得したトークン
+  const [token, setToken] = useState(localStorage.getItem('token'));
   // 選択中のタブを管理するState
   const [activeTab, setActiveTab] = useState('purchase');
   // カートの中身を管理するState
@@ -40,6 +43,19 @@ function App() {
 
   //　売上履歴を管理するStateを追加
   const [sales, setSales] = useState([]);
+
+
+  // ログイン成功時の処理
+  const handleLoginSuccess = (receivedToken) => {
+    localStorage.setItem('token', receivedToken); // トークンをlocalStorageに保存
+    setToken(receivedToken);
+  };
+
+  // ログアウト処理
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setToken(null);
+  };
 
   
   const fetchProducts = useCallback(async () =>{
@@ -120,6 +136,7 @@ function App() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           name: newProductName,
@@ -385,10 +402,19 @@ function App() {
   };
 
 
+   // ログイン状態に応じて表示を切り替える
+  if (!token) {
+    return <Auth onLoginSuccess={handleLoginSuccess} />;
+  }
+
+
 
   return (
     <div className="container">
-
+      <div className="app-header">
+        <h1>POS System</h1>
+        <button onClick={handleLogout} className="btn-logout">ログアウト</button>
+      </div>
       <NavigationBar activeTab={activeTab} onTabChange={handleTabChange} />
 
       <main className="content">
@@ -418,7 +444,7 @@ function App() {
         )}
 
         {isPaymentOpen && <PaymentModal cart={cart} products={products} onClose={handleClosePayment} onOpen={handleOpenWriting}/>}
-        {isWritingOpen && <WritingModal cart={cart} products={products} API_BASE_URL={API_BASE_URL} onClose={handleCloseWriting} onPurchaseComplete={handlePurchaseComplete}/>}
+        {isWritingOpen && <WritingModal cart={cart} products={products} API_BASE_URL={API_BASE_URL} onClose={handleCloseWriting} onPurchaseComplete={handlePurchaseComplete} token={token}/>}
       </main>
     </div>
   );
