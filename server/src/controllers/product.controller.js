@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client';
+import { broadcast } from '../websocket.js';
 const prisma = new PrismaClient();
+
 
 // 商品リストを取得する
 export const getProducts = async (req, res) => {
@@ -21,6 +23,7 @@ export const createProduct = async (req, res) => {
         price: Number(price),
       },
     });
+    broadcast({ type: 'PRODUCT_UPDATED' }); //  通知を送信
     res.status(201).json(newProduct);
   } catch (error) {
     res.status(500).json({ message: "エラーが発生しました。" });

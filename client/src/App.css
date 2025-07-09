@@ -1,38 +1,56 @@
-/* 全体のフォント設定 */
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  margin: 0;
+/* --- 全体・レイアウト設定 --- */
+
+html, body {
+  margin: 0;      /* ブラウザ標準の余白をリセットして、謎の余白を消す */
+  padding: 0;     /* 同じく、不要な余白をリセット */
   background-color: #f7f7f7;
-  display: block;
-  padding:20px;
+  width:100%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 20px;
+  background-color: #f7f7f7;
+  min-height: 100vh;
 }
 
 .container {
-  text-align: center;
-  max-width: 1200px;
-  margin: 10px auto;
+  
+  width: 95%;              /* 画面幅に対して95%の幅を持つ */
+  max-width: 1100px;       /* ただし、最大幅は1100pxまでにする (PCでの広がりすぎ防止) */
+  margin: 0 auto;          /* 上下の余白を0にし、左右を自動で中央揃えにする */
   padding: 20px;
   background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* タブ */
+.app-header {
+  text-align: right;
+  margin: 10px 10px 5px 0px;
+}
+
+/* --- タブ --- */
 .tabs {
-  display: flex;
+  justify-content: center;
   border-bottom: 2px solid #ddd;
-  justify-content: center
 }
 
 .tabs button {
+  width: 33%;
   padding: 10px 20px;
   border: none;
-  background-color: transparent;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  background: transparent;
   cursor: pointer;
   font-size: 16px;
   color: #888;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px; /* 下線を親要素のborderに重ねる */
+  white-space: nowrap;
 }
 
 .tabs button.tab-active {
@@ -40,22 +58,32 @@ body {
   border-bottom-color: orange;
 }
 
-/* コンテンツエリア */
+/* App.css に追記 */
+
+.table-container {
+  width: 100%;
+  overflow-x: auto; /* 中身がはみ出したら横スクロールバーを表示 
+*/} 
+
+/* .sales-table {
+  /* テーブル自体が縮まないように、最小幅を指定するのが効果的 
+  min-width: 700px;
+  width: 100%;
+} */
+
+/* .sales-table th, .sales-table td {
+  white-space: nowrap; /* テキストが折り返されないようにする 
+} */
+
+
 .content {
-  padding-top: 20px;
+  padding: 0px 20px 20px 20px;
 }
 
-.content h2 {
-  font-size: 20px;
-  color: #333;
-  margin-bottom: 20px;
-}
-
-/* 商品リスト */
 .product-list {
   display: flex;
   flex-direction: column;
-  gap: 20px; /* 各商品の間隔 */
+  gap: 20px;
 }
 
 .product-item {
@@ -71,20 +99,14 @@ body {
 .product-controls {
   display: flex;
   align-items: center;
-  gap: 10px; /* 操作ボタン間の間隔 */
+  gap: 10px;
 }
 
-.product-name-regist{
-  font-size: 20px;
-  margin: 10px auto;
-}
-
-
-.form-group input{
+.form-group input {
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 4px;
-  width: 60% !important; /* 入力フィールドの幅 */
+  width: 60%;
 }
 
 
@@ -93,12 +115,12 @@ body {
   border-collapse: collapse;
   margin-top: 20px;
   font-size: 14px;
+  text-align: left;
 }
 
 .sales-table th, .sales-table td {
   border: 1px solid #ddd;
   padding: 12px;
-  text-align: left;
   vertical-align: middle;
 }
 
@@ -111,49 +133,8 @@ body {
   background-color: #f9f9f9;
 }
 
-.sale-items-list-in-table {
-  list-style-type: none;
-  margin: 0;
-  padding: 0;
-}
-
-.status-buttons {
-  display: flex;
-  gap: 5px;
-}
-
-.status-buttons button {
-  padding: 5px 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  cursor: pointer;
-  background-color: #fff;
-}
-
-.status-buttons button.active {
-  background-color: #4a5a94;
-  color: white;
-  border-color: #4a5a94;
-}
-
-/* 数量表示 */
-.quantity-display {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 50px;
-  height: 50px;
-  background-color: #222;
-  color: #0f0; /* 緑色の文字 */
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 24px;
-  font-weight: bold;
-  border-radius: 8px;
-  border: 2px solid #444;
-}
-
-/* 汎用ボタンと各ボタンのスタイル */
-.btn-add, .btn-remove, .btn-purchase {
+/* --- 汎用ボタンスタイル --- */
+.btn-add, .btn-remove, .btn-purchase, .btn-logout {
   padding: 10px 20px;
   border: none;
   border-radius: 6px;
@@ -163,10 +144,11 @@ body {
   transition: opacity 0.2s;
 }
 
-.btn-add:hover, .btn-remove:hover, .btn-purchase:hover {
+.btn-add:hover, .btn-remove:hover, .btn-purchase:hover, .btn-logout:hover {
   opacity: 0.8;
 }
 
+/* --- 各ボタンの色と個別スタイル --- */
 .btn-add {
   background-color: #4a5a94;
 }
@@ -187,18 +169,116 @@ body {
   padding: 12px 24px;
 }
 
-.app-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
+.btn-logout {
+  margin: 0px 30px 0px 0px;
+  background-color: #6c757d;
+  padding: 3px 8px;
 }
 
-.btn-logout {
-  background-color: #6c757d;
-  color: white;
-  padding: 8px 15px;
-  border: none;
-  border-radius: 6px;
+/* --- その他コンポーネント --- */
+.status-buttons button {
+  padding: 5px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
   cursor: pointer;
+  background-color: #fff;
+}
+
+.status-buttons button.active {
+  background-color: #4a5a94;
+  color: white;
+  border-color: #4a5a94;
+}
+
+.quantity-display {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 50px;
+  height: 50px;
+  background-color: #222;
+  color: #0f0; /* 緑色の文字 */
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 24px;
+  font-weight: bold;
+  border-radius: 8px;
+  border: 2px solid #444;
+}
+
+/* --- スマホ対応 --- */
+@media screen and (max-width: 600px) {
+  .container {
+    width: 100%; /* スマホでは画面いっぱいに表示 */
+    border-radius: 0; /* 角丸をなくす */
+  }
+
+  .app-header {
+    justify-content: flex-end;
+  }
+
+  .tabs {
+    overflow-x: auto; /* タブを横スクロール可能に */
+  }
+
+  .tabs button {
+    padding: 8px 10%;
+    font-size: 0.9em;
+    white-space: normal;
+  }
+
+  .table-container {
+    overflow-x: hidden; /* 横スクロールを無効化 */
+  }
+
+  .sales-table {
+    border: none;
+    min-width: 0; /* 最小幅をリセット */
+  }
+
+  /* 1. テーブルのヘッダーは非表示にする */
+  .sales-table thead {
+    display: none;
+  }
+
+  /* 2. テーブルの行をカードのように見せる */
+  .sales-table tr {
+    display: block; /* 縦積みにする */
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+  }
+
+  /* 3. テーブルのセルを調整 */
+  .sales-table td {
+    display: block; /* 縦積みにする */
+    text-align: right; /* 値を右寄せにする */
+    border: none;
+    border-bottom: 1px solid #eee; /* 各項目の間に区切り線 */
+    padding: 10px 10px 10px 50%; /* 左側にラベルを置くためのスペースを確保 */
+    position: relative; /* ラベルを配置するための基準点 */
+  }
+
+  .sales-table td:last-child {
+    border-bottom: none; /* 最後の項目は区切り線を消す */
+  }
+
+  /* 4. data-labelを使って、非表示にしたヘッダーをラベルとして表示する */
+  .sales-table td::before {
+    content: attr(data-label); /* data-label属性のテキストを content として表示 */
+    position: absolute;
+    left: 10px; /* 左端に配置 */
+    width: 45%; /* ラベルの幅 */
+    font-weight: bold;
+    text-align: left; /* ラベル自体は左寄せ */
+  }
+
+  .sales-table td .status-buttons {
+    justify-content: flex-end; /* ステータスボタンを右寄せにする */
+  }
+
+  .status-buttons button {
+    margin-left: 10px; /* ボタン間のスペースを確保 */
+    margin-top:5px; /* ボタンの上にスペースを追加 */
+  }
 }

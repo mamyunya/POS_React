@@ -8,17 +8,7 @@ import Auth from './components/Auth';
 // ★ バックエンドAPIのベースURLを定数として定義
 const API_BASE_URL = 'http://localhost:3000/api';
 
-// // サンプルの商品データ
-// const mockProducts = [
-//   { id: 1, name: 'aa', price: 100 },
-//   { id: 2, name: 'as', price: 12345 },
-//   { id: 3, name: 'bb', price: 250 },
-//   { id: 4, name: 'cc', price: 800 },
-// ];
 
-// const salesRecode = [
-//   { id: 1, created_at: '2025-04-05-12:00:00', aa: 0, as: 0,bb: 1, cc:2, customer_detail: "white", gender: "female", customer_type: "student"}
-// ];
 
 function App() {
   // トークンを管理するState 初期値はlocalStorageから取得したトークン
@@ -101,24 +91,53 @@ function App() {
   }, []);
 
 
-  // // WebSocketに接続し、サーバーからの通知を待つ (将来のため)
-  // useEffect(() => {
-  //   const ws = new WebSocket('ws://localhost:3000');
-  //   ws.onopen = () => console.log('WebSocketに接続しました。');
-  //   ws.onmessage = (event) => {
-  //     const message = JSON.parse(event.data);
-  //     if (message.type === 'PRODUCT_UPDATED') {
-  //       console.log('商品が更新されました。リストを再取得します。');
-  //       fetchProducts(); // 商品更新の通知が来たら、同じ関数を呼び出す
-  //     }
-  //   };
-  //   ws.onclose = () => console.log('WebSocketから切断しました。');
+  // WebSocketに接続し、サーバーからの通知を待つ (将来のため)
+  useEffect(() => {
+    // ログイ ンしていなければ（トークンがなければ）接続しない
+    if (!token) return;
 
-  //   // クリーンアップ関数
-  //   return () => {
-  //     ws.close();
-  //   };
-  // }, [fetchProducts]);
+    //  接続URLにトークンを付与する
+    const ws = new WebSocket(`ws://localhost:3000?token=${token}`);
+
+    // 接続成功時の処理
+    ws.onopen = () => {
+      console.log('WebSocketサーバーに接続しました。');
+    };
+
+    // サーバーからメッセージを受信したときの処理
+    ws.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      console.log('サーバーからの通知:', message);
+
+      // 受け取ったメッセージのタイプに応じて、データを再取得
+      if (message.type === 'PRODUCT_UPDATED') {
+        fetchProducts();
+      } else if (message.type === 'SALE_UPDATED') {
+        // 現在開いているタブが履歴画面なら再取得
+        if (activeTab === 'history') {
+          fetchSales();
+        }
+      }
+    };
+
+    // 接続が閉じたときの処理
+    ws.onclose = () => {
+      console.log('WebSocketサーバーから切断しました。');
+    };
+    
+    // エラー発生時の処理
+    ws.onerror = (error) => {
+      console.error('WebSocketエラー:', error);
+    };
+
+    // コンポーネントがアンマウントされるときに接続を閉じる（クリーンアップ）
+    return () => {
+      if(ws) {
+        ws.close();
+      }
+    };
+    // 依存配列にactiveTabを追加して、タブの状態をonmessage内で参照できるようにする
+  }, [fetchProducts, fetchSales, activeTab]);
 
 
   // 新しい商品を登録するためのAPIを呼び出す関数を追加
@@ -151,7 +170,7 @@ function App() {
       alert('商品を登録しました！');
       setNewProductName(''); // 入力フォームをクリア
       setNewProductPrice('');
-      // fetchProducts(); // 商品リストを再取得（WebSocketがあるので不要な場合も）
+      //fetchProducts(); // 商品リストを再取得（WebSocketがあるので不要な場合も）
 
     } catch (err) {
       alert(err.message);
@@ -345,59 +364,66 @@ function App() {
     if (isLoading) return <div>読み込み中...</div>;
     if (error) return <div className="error-message">エラー: {error}</div>;
     if (sales.length === 0) return <div>売上履歴はまだありません。</div>;
+    let totalAmount = 0; // 合計金額を計算するための変数
 
     return (
-      <table className="sales-table">
-        <thead>
-          <tr>
-            <th>取引日時</th>
-            <th>顧客情報</th>
-            <th>購入商品</th>
-            <th>合計金額</th>
-            <th>ステータス</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sales.map((sale) => (
-            <tr key={sale.id}>
-              <td>{new Date(sale.createdAt).toLocaleString('ja-JP')}</td>
-              <td>{`${sale.customerDetail} (${sale.gender}/${sale.customerType})`}</td>
-              <td>
-                <ul className="sale-items-list-in-table">
-                  {sale.saleItems.map((item) => (
-                    <li key={item.id}>
-                      {item.product.name} x {item.quantity}
-                    </li>
-                  ))}
-                </ul>
-              </td>
-              <td>¥{sale.totalAmount.toLocaleString()}</td>
-              <td>
-                <div className="status-buttons">
-                  <button
-                    onClick={() => handleStatusChange(sale.id, 'NON_COMMIT')}
-                    className={sale.status === 'NON_COMMIT' ? 'active' : ''}
-                  >
-                    調理前
-                  </button>
-                  <button
-                    onClick={() => handleStatusChange(sale.id, 'IN_PROGRESS')}
-                    className={sale.status === 'IN_PROGRESS' ? 'active' : ''}
-                  >
-                    調理中
-                  </button>
-                  <button
-                    onClick={() => handleStatusChange(sale.id, 'SERVED')}
-                    className={sale.status === 'SERVED' ? 'active' : ''}
-                  >
-                    提供済み
-                  </button>
-                </div>
-              </td>
+      <div className="table-container">
+        <table className="sales-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>取引日時</th>
+              <th>顧客情報</th>
+              <th>購入商品</th>
+              <th>合計金額</th>
+              <th>ステータス</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {sales.map((sale) => (
+              totalAmount += sale.totalAmount, // 合計金額を加算
+              <tr key={sale.id}>
+                <td data-label="ID">{sale.id}</td>
+                <td data-label="取引日時">{new Date(sale.createdAt).toLocaleString('ja-JP')}</td>
+                <td data-label="顧客情報">{`${sale.customerDetail} (${sale.gender}/${sale.customerType})`}</td>
+                <td data-label="購入商品">
+                  <ul className="sale-items-list-in-table">
+                    {sale.saleItems.map((item) => (
+                      <li key={item.id}>
+                        {item.product.name} x {item.quantity}
+                      </li>
+                    ))}
+                  </ul>
+                </td>
+                <td data-label="合計金額">¥{sale.totalAmount.toLocaleString()}</td>
+                <td data-label="ステータス">
+                  <div className="status-buttons">
+                    <button
+                      onClick={() => handleStatusChange(sale.id, 'NON_COMMIT')}
+                      className={sale.status === 'NON_COMMIT' ? 'active' : ''}
+                    >
+                      調理前
+                    </button>
+                    <button
+                      onClick={() => handleStatusChange(sale.id, 'IN_PROGRESS')}
+                      className={sale.status === 'IN_PROGRESS' ? 'active' : ''}
+                    >
+                      調理中
+                    </button>
+                    <button
+                      onClick={() => handleStatusChange(sale.id, 'SERVED')}
+                      className={sale.status === 'SERVED' ? 'active' : ''}
+                    >
+                      提供済み
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        合計：{totalAmount} 円
+      </div>
     );
   };
 
@@ -411,12 +437,10 @@ function App() {
 
   return (
     <div className="container">
+      <NavigationBar activeTab={activeTab} onTabChange={handleTabChange} />
       <div className="app-header">
-        <h1>POS System</h1>
         <button onClick={handleLogout} className="btn-logout">ログアウト</button>
       </div>
-      <NavigationBar activeTab={activeTab} onTabChange={handleTabChange} />
-
       <main className="content">
         {activeTab === 'purchase' && (
           <div>

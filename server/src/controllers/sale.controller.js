@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-//import { broadcast } from '../websocket.js';
+import { broadcast } from '../websocket.js';
 const prisma = new PrismaClient();
 
 // 売上履歴を取得する
@@ -29,7 +29,7 @@ export const createSale = async (req, res) => {
         gender: gender,
         customerType: customer_type,
         userId: userId, // 誰が登録したかを記録するためのuserId
-        
+
         // 売上の詳細を作成
         saleItems: {
           create: Object.keys(cart).map(productId => ({
@@ -40,6 +40,7 @@ export const createSale = async (req, res) => {
         },
       },
     });
+    broadcast({ type: 'SALE_UPDATED' });
     res.status(201).json(sale);
   } catch (error) {
     // console.error(error); // デバッグ用にエラー内容を表示
@@ -60,8 +61,8 @@ export const updateSaleStatus = async (req, res) => {
     });
     
 
-    // ★ 変更を全クライアントに通知
-    //broadcast({ type: 'SALE_UPDATED' });
+    //  変更を全クライアントに通知
+    broadcast({ type: 'SALE_UPDATED' });
 
     res.status(200).json(updatedSale);
   } catch (error) {
