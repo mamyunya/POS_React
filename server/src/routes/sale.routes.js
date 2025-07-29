@@ -1,13 +1,14 @@
 import { Router } from 'express';
-import { getSales, createSale, updateSaleStatus } from '../controllers/sale.controller.js';
 import { authenticateToken } from '../middleware/auth.middleware.js';
+import { getSales, createSale, updateSaleStatus,  exportSalesToCsv } from '../controllers/sale.controller.js';
 
 const router = Router();
 
 console.log('Sale routes initialized');
-router.get('/sales', getSales);
+router.get('/', getSales);
+router.get('/export', authenticateToken, exportSalesToCsv);
 // router.post('/sales', createSale);
-router.patch('/sales/:id', updateSaleStatus);
-router.post('/sales', authenticateToken, createSale);
+router.post('/', authenticateToken, createSale);
+router.patch('/:id', updateSaleStatus);
 
 export default router;

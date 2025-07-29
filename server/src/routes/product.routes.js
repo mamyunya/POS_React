@@ -4,10 +4,10 @@ import { authenticateToken } from '../middleware/auth.middleware.js';
 
 const router = Router();
 console.log('Product routes initialized');
-router.post('/products', authenticateToken, createProduct);
+router.post('/', authenticateToken, createProduct);
 
 // GETリクエストで /products にアクセスが来たら getProducts 関数を実行
-router.get('/products', getProducts);
+router.get('/', getProducts);
 
 // // POSTリクエストで /products にアクセスが来たら createProduct 関数を実行
 // router.post('/products', createProduct);

@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { Parser } from 'json2csv';
 import { broadcast } from '../websocket.js';
 const prisma = new PrismaClient();
 
@@ -67,5 +68,82 @@ export const updateSaleStatus = async (req, res) => {
     res.status(200).json(updatedSale);
   } catch (error) {
     res.status(500).json({ message: "ステータスの更新中にエラーが発生しました。" });
+  }
+};
+
+
+// 売上データをCSV形式でエクスポートする
+export const exportSalesToCsv = async (req, res) => {
+  try {
+    const { userId } = req.user;
+
+    // ★ 1. ユーザーの売上履歴に登場する商品を全て取得する
+    const allProducts = await prisma.product.findMany({
+      where: {
+        // ProductのsaleItemsの中に、
+        saleItems: {
+          some: {
+            // saleのuserIdがログインユーザーのものであるものが、1つでも存在する
+            sale: {
+              userId: userId,
+            },
+          },
+        },
+      },
+      orderBy: { id: 'asc' },
+    });
+
+    // 2. ログインユーザーの全売上データを取得する
+    const sales = await prisma.sale.findMany({
+      where: { userId: userId },
+      include: {
+        saleItems: {
+          include: {
+            product: true,
+          },
+        },
+      },
+      orderBy: { id: 'asc' },
+    });
+    // 3. 売上データが存在しない場合はエラーメッセージを返す
+    if (sales.length === 0) {
+      return res.status(404).send('エクスポートする売上データがありません。');
+    }
+
+    // 4. CSVのヘッダーを動的に作成
+    const productHeaders = allProducts.map(p => `${p.name}_数量`);
+    const headers = ['取引ID', '取引日時', '顧客情報', '顧客性別', '顧客タイプ', ...productHeaders, '合計金額'];
+
+    // 5. 各売上を行データに変換
+    const rows = sales.map(sale => {
+      const row = {
+        '取引ID': sale.id,
+        '取引日時': new Date(sale.createdAt).toLocaleString('ja-JP'),
+        '顧客情報': `${sale.customerDetail}`,
+        '顧客性別': `${sale.gender}`,
+        '顧客タイプ': `${sale.customerType}`,
+      };
+
+      allProducts.forEach(product => {
+        const saleItem = sale.saleItems.find(item => item.productId === product.id);
+        row[`${product.name}_数量`] = saleItem ? saleItem.quantity : 0;
+      });
+      
+      row['合計金額'] = sale.totalAmount;
+      return row;
+    });
+
+    // 6. JSONをCSVに変換してダウンロードさせる
+    const json2csvParser = new Parser({ fields: headers });
+    const csv = json2csvParser.parse(rows);
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="sales-summary-${new Date().toISOString().slice(0,10)}.csv"`);
+    
+    res.status(200).send('\ufeff' + csv);
+
+  } catch (error) {
+    console.error("CSVエクスポートエラー:", error);
+    res.status(500).json({ message: "CSVのエクスポート中にエラーが発生しました。" });
   }
 };

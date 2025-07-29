@@ -1,15 +1,37 @@
 import jwt from 'jsonwebtoken';
 const JWT_SECRET = 'your-super-secret-key';
 
-export const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // "Bearer TOKEN"の形式
+export const authenticateToken = async (req, res, next) => {
+  try {
+    const authHeader = req.headers['authorization'];
 
-  if (token == null) return res.sendStatus(401); // トークンがない
+    // ヘッダーやトークンの形式が不正な場合は401
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.sendStatus(401);
+    }
 
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) return res.sendStatus(403); // トークンが無効
-    req.user = user; // リクエストオブジェクトにユーザー情報を格納
-    next(); // 次の処理へ
-  });
+    const token = authHeader.split(' ')[1];
+
+    // jwt.verifyをPromiseでラップして、awaitで完了を待つ
+    const user = await new Promise((resolve, reject) => {
+      jwt.verify(token, JWT_SECRET, (err, decoded) => {
+        if (err) {
+          // エラーがあればPromiseをreject
+          return reject(err);
+        }
+        // 成功すればデコードされた情報をresolve
+        resolve(decoded);
+      });
+    });
+
+    // リクエストにユーザー情報を格納
+    req.user = user;
+
+    // 次の処理へ
+    next();
+
+  } catch (error) {
+    // tryブロック内で発生したエラー（トークン期限切れなど）はここでキャッチ
+    return res.sendStatus(403); // Forbidden
+  }
 };

@@ -24,8 +24,8 @@ app.use(express.json());
 
 // ルーティング
 app.use('/api/auth', authRoutes);
-app.use('/api', productRoutes);
-app.use('/api', saleRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/sales', saleRoutes);
 
 // ★ 正しく統合された 'server' を起動する
 server.listen(PORT, () => {

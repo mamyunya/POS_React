@@ -7,6 +7,7 @@ import Auth from './components/Auth';
 
 // ★ バックエンドAPIのベースURLを定数として定義
 const API_BASE_URL = 'http://localhost:3000/api';
+const WEB_SOCKET_URL = 'ws://localhost:3000';
 
 
 
@@ -97,7 +98,7 @@ function App() {
     if (!token) return;
 
     //  接続URLにトークンを付与する
-    const ws = new WebSocket(`ws://localhost:3000?token=${token}`);
+    const ws = new WebSocket(`${WEB_SOCKET_URL}?token=${token}`);
 
     // 接続成功時の処理
     ws.onopen = () => {
@@ -367,65 +368,100 @@ function App() {
     let totalAmount = 0; // 合計金額を計算するための変数
 
     return (
-      <div className="table-container">
-        <table className="sales-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>取引日時</th>
-              <th>顧客情報</th>
-              <th>購入商品</th>
-              <th>合計金額</th>
-              <th>ステータス</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sales.map((sale) => (
-              totalAmount += sale.totalAmount, // 合計金額を加算
-              <tr key={sale.id}>
-                <td data-label="ID">{sale.id}</td>
-                <td data-label="取引日時">{new Date(sale.createdAt).toLocaleString('ja-JP')}</td>
-                <td data-label="顧客情報">{`${sale.customerDetail} (${sale.gender}/${sale.customerType})`}</td>
-                <td data-label="購入商品">
-                  <ul className="sale-items-list-in-table">
-                    {sale.saleItems.map((item) => (
-                      <li key={item.id}>
-                        {item.product.name} x {item.quantity}
-                      </li>
-                    ))}
-                  </ul>
-                </td>
-                <td data-label="合計金額">¥{sale.totalAmount.toLocaleString()}</td>
-                <td data-label="ステータス">
-                  <div className="status-buttons">
-                    <button
-                      onClick={() => handleStatusChange(sale.id, 'NON_COMMIT')}
-                      className={sale.status === 'NON_COMMIT' ? 'active' : ''}
-                    >
-                      調理前
-                    </button>
-                    <button
-                      onClick={() => handleStatusChange(sale.id, 'IN_PROGRESS')}
-                      className={sale.status === 'IN_PROGRESS' ? 'active' : ''}
-                    >
-                      調理中
-                    </button>
-                    <button
-                      onClick={() => handleStatusChange(sale.id, 'SERVED')}
-                      className={sale.status === 'SERVED' ? 'active' : ''}
-                    >
-                      提供済み
-                    </button>
-                  </div>
-                </td>
+      <div className="sales-history">
+        <div className="table-container">
+          <table className="sales-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>取引日時</th>
+                <th>顧客情報</th>
+                <th>購入商品</th>
+                <th>合計金額</th>
+                <th>ステータス</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        合計：{totalAmount} 円
+            </thead>
+            <tbody>
+              {sales.map((sale) => (
+                totalAmount += sale.totalAmount, // 合計金額を加算
+                <tr key={sale.id}>
+                  <td data-label="ID">{sale.id}</td>
+                  <td data-label="取引日時">{new Date(sale.createdAt).toLocaleString('ja-JP')}</td>
+                  <td data-label="顧客情報">{`${sale.customerDetail} (${sale.gender}/${sale.customerType})`}</td>
+                  <td data-label="購入商品">
+                    <ul className="sale-items-list-in-table">
+                      {sale.saleItems.map((item) => (
+                        <li key={item.id}>
+                          {item.product.name} x {item.quantity}
+                        </li>
+                      ))}
+                    </ul>
+                  </td>
+                  <td data-label="合計金額">¥{sale.totalAmount.toLocaleString()}</td>
+                  <td data-label="ステータス">
+                    <div className="status-buttons">
+                      <button
+                        onClick={() => handleStatusChange(sale.id, 'NON_COMMIT')}
+                        className={sale.status === 'NON_COMMIT' ? 'active' : ''}
+                      >
+                        調理前
+                      </button>
+                      <button
+                        onClick={() => handleStatusChange(sale.id, 'IN_PROGRESS')}
+                        className={sale.status === 'IN_PROGRESS' ? 'active' : ''}
+                      >
+                        調理中
+                      </button>
+                      <button
+                        onClick={() => handleStatusChange(sale.id, 'SERVED')}
+                        className={sale.status === 'SERVED' ? 'active' : ''}
+                      >
+                        提供済み
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          合計：{totalAmount} 円
+        </div>
+        <div className="sales-history-header">
+          <button onClick={handleExportCsv} className="btn-export">
+            CSVエクスポート
+          </button>
+        </div>
       </div>
     );
   };
+
+
+ const handleExportCsv = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/sales/export`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('CSVのエクスポートに失敗しました。');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sales-history-${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+
+  } catch (err) {
+    alert(err.message);
+  }
+};
 
 
    // ログイン状態に応じて表示を切り替える
