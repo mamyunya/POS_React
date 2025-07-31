@@ -9,6 +9,7 @@ export const getProducts = async (req, res) => {
     const products = await prisma.product.findMany();
     res.status(200).json(products);
   } catch (error) {
+    console.error("商品取得エラー:", error); // ★具体的なエラー内容をログに出力
     res.status(500).json({ message: "エラーが発生しました。" });
   }
 };

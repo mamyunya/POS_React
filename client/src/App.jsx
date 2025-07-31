@@ -6,8 +6,8 @@ import WritingModal from './components/WritingModal';
 import Auth from './components/Auth';
 
 // ★ バックエンドAPIのベースURLを定数として定義
-const API_BASE_URL = 'http://localhost:3000/api';
-const WEB_SOCKET_URL = 'ws://localhost:3000';
+const API_BASE_URL = '/api';
+const WEB_SOCKET_URL = `ws://${window.location.host}`;
 
 
 

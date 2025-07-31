@@ -2,12 +2,22 @@
 
 services:
   # 1. バックエンドサービス (Node.js + Express)
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile # nginxディレクトリのDockerfileを使用
+    container_name: pos_nginx
+    ports:
+      - "80:80" # ホストの80番ポートを公開
+    depends_on:
+      - server
+    networks:
+      - pos-network
+  
   server:
     build:
       context: ./server # serverディレクトリのDockerfileを使用
     container_name: pos_server
-    ports:
-      - "3000:3000" # ホストの3000番をコンテナの3000番に繋ぐ
     volumes:
       - ./server:/usr/src/app # ソースコードを同期
       - /usr/src/app/node_modules # node_modulesは同期対象から除外
@@ -15,32 +25,28 @@ services:
       - ./server/.env # .envファイルを環境変数として読み込む
     depends_on:
       - db # dbサービスが起動してからserverを起動する
-    command: npm run dev # コンテナ起動時に実行するコマンド
+    command: npm start # コンテナ起動時に実行するコマンド
     networks:
       - pos-network
 
-  # 2. フロントエンドサービス (Vite + React)
-  client:
-    build:
-      context: ./client # clientディレクトリのDockerfileを使用
-    container_name: pos_client
-    ports:
-      - "5173:5173" # Viteのデフォルトポート
-    volumes:
-      - ./client:/usr/src/app
-      - /usr/src/app/node_modules
-    depends_on:
-      - server # serverが起動してからclientを起動する
-    command: npm run dev
-    networks:
-      - pos-network
+  # # 2. フロントエンドサービス (Vite + React)
+  # client:
+  #   build:
+  #     context: ./client # clientディレクトリのDockerfileを使用
+  #   container_name: pos_client
+  #   volumes:
+  #     - ./client:/usr/src/app
+  #     - /usr/src/app/node_modules
+  #   depends_on:
+  #     - server # serverが起動してからclientを起動する
+  #   # command: npm run build
+  #   networks:
+  #     - pos-network
 
   # 3. データベースサービス (PostgreSQL)
   db:
     image: postgres:17.5 # 公式のPostgreSQLイメージを使用
     container_name: pos_db
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data # DBデータを永続化
     environment:
