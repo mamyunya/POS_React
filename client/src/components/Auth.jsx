@@ -77,9 +77,6 @@ function Auth({ onLoginSuccess }) {
         </button>
         <p className="toggle-form">
           {isLogin ? 'アカウントをお持ちでないですか？' : '既にアカウントをお持ちですか？'}
-          <button type="button" onClick={() => setIsLogin(!isLogin)}>
-            {isLogin ? '新規登録へ' : 'ログインへ'}
-          </button>
         </p>
       </form>
     </div>

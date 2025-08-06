@@ -118,7 +118,7 @@ export const exportSalesToCsv = async (req, res) => {
     const rows = sales.map(sale => {
       const row = {
         '取引ID': sale.id,
-        '取引日時': new Date(sale.createdAt).toLocaleString('ja-JP'),
+        '取引日時': new Date(sale.createdAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }),
         '顧客情報': `${sale.customerDetail}`,
         '顧客性別': `${sale.gender}`,
         '顧客タイプ': `${sale.customerType}`,

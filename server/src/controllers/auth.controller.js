@@ -35,7 +35,7 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: '認証情報が正しくありません。' });
     }
     // ★ JWTを生成
-    const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '2h' });
     res.json({ token });
   } catch (error) {
     res.status(500).json({ message: 'ログイン中にエラーが発生しました。' });

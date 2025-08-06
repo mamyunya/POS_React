@@ -7,7 +7,7 @@ import Auth from './components/Auth';
 
 // ★ バックエンドAPIのベースURLを定数として定義
 const API_BASE_URL = '/api';
-const WEB_SOCKET_URL = `ws://${window.location.host}`;
+// const WEB_SOCKET_URL = `${protocol}//${host}/ws/`;
 
 
 
@@ -94,13 +94,16 @@ function App() {
 
   // WebSocketに接続し、サーバーからの通知を待つ (将来のため)
   useEffect(() => {
-    // ログイ ンしていなければ（トークンがなければ）接続しない
     if (!token) return;
 
-    //  接続URLにトークンを付与する
-    const ws = new WebSocket(`${WEB_SOCKET_URL}?token=${token}`);
+    const protocol = window.location.protocol === 'https' ? 'wss:' : 'ws:';
+    const host = window.location.host;
+    // ★ 正しいURLを生成
+    const wsUrl = `${protocol}//${host}/ws/?token=${token}`;
 
-    // 接続成功時の処理
+    // ★ 生成した wsUrl を直接使用する
+    const ws = new WebSocket(wsUrl);
+
     ws.onopen = () => {
       console.log('WebSocketサーバーに接続しました。');
     };
@@ -110,35 +113,27 @@ function App() {
       const message = JSON.parse(event.data);
       console.log('サーバーからの通知:', message);
 
-      // 受け取ったメッセージのタイプに応じて、データを再取得
       if (message.type === 'PRODUCT_UPDATED') {
         fetchProducts();
       } else if (message.type === 'SALE_UPDATED') {
-        // 現在開いているタブが履歴画面なら再取得
-        if (activeTab === 'history') {
-          fetchSales();
-        }
+        fetchSales();
       }
     };
 
-    // 接続が閉じたときの処理
     ws.onclose = () => {
       console.log('WebSocketサーバーから切断しました。');
     };
     
-    // エラー発生時の処理
     ws.onerror = (error) => {
       console.error('WebSocketエラー:', error);
     };
 
-    // コンポーネントがアンマウントされるときに接続を閉じる（クリーンアップ）
+    // コンポーネントがアンマウントされるときに接続を閉じる
     return () => {
-      if(ws) {
-        ws.close();
-      }
+      if (ws) ws.close();
     };
-    // 依存配列にactiveTabを追加して、タブの状態をonmessage内で参照できるようにする
-  }, [fetchProducts, fetchSales, activeTab]);
+    // ★ 依存配列を[token]のみにする。接続はログイン/ログアウト時に一度だけ行う
+  }, [token]);
 
 
   // 新しい商品を登録するためのAPIを呼び出す関数を追加
