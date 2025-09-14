@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './WritingModal.css';
+import { apiFetch } from '../api';
 
-function WritingModal({ cart, products, API_BASE_URL, onClose, onPurchaseComplete, token }) {
+function WritingModal({ cart, products, onClose, onPurchaseComplete, token, handleLogout }) {
   // ★ 1. Stateの定義
   const [totalAmount, setTotalAmount] = useState(0);
   const [customerDetail, setCustomerDetail] = useState(''); // 服装・整理番号など
@@ -44,30 +45,27 @@ function WritingModal({ cart, products, API_BASE_URL, onClose, onPurchaseComplet
 
     console.log('APIに送信するデータ:', payload);
 
-    try {
-      // fetchを使ってバックエンドAPIにPOSTリクエストを送信
-      const response = await fetch(`${API_BASE_URL}/sales`, {
+      try {
+    // ★ apiFetchは成功すればJSONデータを、失敗すればエラーをスローする
+    const resultData = await apiFetch(
+      '/sales',
+      {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify(payload),
-      });
+      },
+      handleLogout // ★ App.jsxから渡されたhandleLogoutを渡す
+    );
 
-      if (response.ok) {
-        alert('登録が完了しました。');
-        onPurchaseComplete(); //  親コンポーネントに完了を通知
-      } else {
-        // サーバーからのエラーレスポンスを処理
-        const errorData = await response.json();
-        alert(`登録に失敗しました: ${errorData.message || '不明なエラー'}`);
-      }
-    } catch (error) {
-      console.error('API送信中にエラーが発生しました:', error);
-      alert('通信エラーが発生しました。');
-    }
-  };
+    // ★ この行に到達した時点で、リクエストは成功している
+    alert('登録が完了しました。');
+    onPurchaseComplete();
+
+  } catch (error) {
+    // ★ apiFetchがスローしたエラーは、全てこのcatchブロックで処理される
+    console.error('API送信中にエラーが発生しました:', error);
+    alert(error.message || '通信エラーが発生しました。');
+  }
+};
 
   return (
     <div className="payment-modal-overlay">

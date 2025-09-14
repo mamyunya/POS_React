@@ -47,6 +47,8 @@ function PaymentModal({ cart, products, onClose ,onOpen}) {
             placeholder="数字のみ入力 (例: 1000)"
             value={paymentAmount}
             onChange={handlePaymentChange}
+            inputMode="numeric"
+            pattern="[0-9]*"
           />
         </div>
 
