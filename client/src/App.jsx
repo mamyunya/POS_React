@@ -4,6 +4,7 @@ import NavigationBar from './components/NavigationBar';
 import PaymentModal from './components/PaymentModal';
 import WritingModal from './components/WritingModal';
 import Auth from './components/Auth';
+import { apiFetch } from './api'; 
 
 // ★ バックエンドAPIのベースURLを定数として定義
 const API_BASE_URL = 'http://localhost:3000/api';
@@ -43,28 +44,25 @@ function App() {
   };
 
   // ログアウト処理
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => { // ★ useCallbackでメモ化
     localStorage.removeItem('token');
     setToken(null);
-  };
+  }, []);
 
   
-  const fetchProducts = useCallback(async () =>{
-    setIsLoading(true); // データ取得開始
+  const fetchProducts = useCallback(async () => {
+    setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/products`);
-      if (!response.ok) {
-        throw new Error('データの取得に失敗しました。');
-      }
-      const data = await response.json();
-      setProducts(data); // 取得したデータでStateを更新
+      // ★ apiFetchを使用するように変更
+      const data = await apiFetch('/products', {}, handleLogout);
+      setProducts(data);
     } catch (err) {
       setError(err.message);
     } finally {
-      setIsLoading(false); // データ取得完了（成功・失敗問わず）
+      setIsLoading(false);
     }
-  }, []); // useCallbackの依存配列は空
+  }, [handleLogout]); // ★ 依存配列にhandleLogoutを追加
 
 
   //ページが読み込まれた最初だけ実行
@@ -78,29 +76,36 @@ function App() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/sales`);
-      if (!response.ok) {
-        throw new Error('売上履歴の取得に失敗しました。');
-      }
-      const data = await response.json();
+      const data = await apiFetch('/sales', {}, handleLogout);
       setSales(data);
     } catch (err) {
       setError(err.message);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [handleLogout]);
+
+
+  useEffect(() => {
+    // ログインしている場合のみ商品リストを取得
+    if (token) {
+      fetchProducts();
+    }
+  }, [token, fetchProducts]); 
 
 
   // WebSocketに接続し、サーバーからの通知を待つ (将来のため)
   useEffect(() => {
-    // ログイ ンしていなければ（トークンがなければ）接続しない
+    // ログインしていなければ（トークンがなければ）接続しない
     if (!token) return;
+    // ★ 正しいURLを生成
 
-    //  接続URLにトークンを付与する
-    const ws = new WebSocket(`${WEB_SOCKET_URL}?token=${token}`);
+    const wsUrl = `${WEB_SOCKET_URL}?token=${token}`
+    console.log('Connecting to WebSocket URL:', wsUrl);
 
-    // 接続成功時の処理
+    // ★ 生成した wsUrl を直接使用する
+    const ws = new WebSocket(wsUrl);
+
     ws.onopen = () => {
       console.log('WebSocketサーバーに接続しました。');
     };
@@ -110,38 +115,29 @@ function App() {
       const message = JSON.parse(event.data);
       console.log('サーバーからの通知:', message);
 
-      // 受け取ったメッセージのタイプに応じて、データを再取得
       if (message.type === 'PRODUCT_UPDATED') {
         fetchProducts();
       } else if (message.type === 'SALE_UPDATED') {
-        // 現在開いているタブが履歴画面なら再取得
-        if (activeTab === 'history') {
-          fetchSales();
-        }
+        fetchSales();
       }
     };
 
-    // 接続が閉じたときの処理
     ws.onclose = () => {
       console.log('WebSocketサーバーから切断しました。');
     };
     
-    // エラー発生時の処理
     ws.onerror = (error) => {
       console.error('WebSocketエラー:', error);
     };
 
-    // コンポーネントがアンマウントされるときに接続を閉じる（クリーンアップ）
+    // コンポーネントがアンマウントされるときに接続を閉じる
     return () => {
-      if(ws) {
-        ws.close();
-      }
+      if (ws) ws.close();
     };
-    // 依存配列にactiveTabを追加して、タブの状態をonmessage内で参照できるようにする
-  }, [fetchProducts, fetchSales, activeTab]);
+    // ★ 依存配列を[token]のみにする。接続はログイン/ログアウト時に一度だけ行う
+  }, [token]);
 
-
-  // 新しい商品を登録するためのAPIを呼び出す関数を追加
+  // 新しい商品を]録するためのAPIを呼び出す関数を追加
   const handleRegisterProduct = async (event) => {
     event.preventDefault(); // フォームのデフォルト送信を防ぐ
 
@@ -152,21 +148,13 @@ function App() {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/products`, {
+      await apiFetch('/products', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({
           name: newProductName,
           price: Number(newProductPrice),
         }),
-      });
-
-      if (!response.ok) {
-        throw new Error('商品登録に失敗しました。');
-      }
+      }, handleLogout);
 
       alert('商品を登録しました！');
       setNewProductName(''); // 入力フォームをクリア
@@ -180,7 +168,7 @@ function App() {
 
 
   const handleStatusChange = async (saleId, newStatus) => {
-    // 画面を即時反映させる「Optimistic UI Update」
+    const previousSales = sales; // ★ エラー時に元に戻すため、更新前のデータを保存
     setSales(currentSales =>
       currentSales.map(sale =>
         sale.id === saleId ? { ...sale, status: newStatus } : sale
@@ -188,19 +176,20 @@ function App() {
     );
 
     try {
-      const response = await fetch(`${API_BASE_URL}/sales/${saleId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      if (!response.ok) {
-        throw new Error('ステータスの更新に失敗しました。');
-      }
-      // WebSocket経由で更新されるので、ここではfetchSales()を呼ばなくても良い
+      // ★ 2. API通信をapiFetchに置き換える
+      await apiFetch(
+        `/sales/${saleId}`, // エンドポイント
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ status: newStatus }),
+        },
+        handleLogout // ログアウト処理を渡す
+      );
+      // 成功時は何もしない（WebSocketで更新が通知されるため）
+
     } catch (err) {
       alert(err.message);
-      // エラーが起きたら元の状態に戻す
-      fetchSales(); 
+      setSales(previousSales);
     }
   };
 
@@ -330,6 +319,8 @@ function App() {
               placeholder="例: 1500"
               value={newProductPrice}
               onChange={(e) => setNewProductPrice(e.target.value)}
+              inputMode="numeric"
+              pattern="[0-9]*"
             />
           </div>
           <button type="submit" className="btn-purchase">この内容で登録</button>
@@ -438,17 +429,8 @@ function App() {
 
  const handleExportCsv = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/sales/export`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
+    const blob = await apiFetch('/sales/export', {}, handleLogout, 'blob');
 
-    if (!response.ok) {
-      throw new Error('CSVのエクスポートに失敗しました。');
-    }
-
-    const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -504,7 +486,7 @@ function App() {
         )}
 
         {isPaymentOpen && <PaymentModal cart={cart} products={products} onClose={handleClosePayment} onOpen={handleOpenWriting}/>}
-        {isWritingOpen && <WritingModal cart={cart} products={products} API_BASE_URL={API_BASE_URL} onClose={handleCloseWriting} onPurchaseComplete={handlePurchaseComplete} token={token}/>}
+        {isWritingOpen && <WritingModal cart={cart} products={products} API_BASE_URL={API_BASE_URL} onClose={handleCloseWriting} onPurchaseComplete={handlePurchaseComplete} token={token} handleLogout={handleLogout}/>}
       </main>
     </div>
   );

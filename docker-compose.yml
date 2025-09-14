@@ -37,7 +37,7 @@ services:
 
   # 3. データベースサービス (PostgreSQL)
   db:
-    image: postgres:17.5 # 公式のPostgreSQLイメージを使用
+    image: postgres:16 # 公式のPostgreSQLイメージを使用
     container_name: pos_db
     ports:
       - "5432:5432"

@@ -5,10 +5,10 @@ import { getSales, createSale, updateSaleStatus,  exportSalesToCsv } from '../co
 const router = Router();
 
 console.log('Sale routes initialized');
-router.get('/', getSales);
+router.get('/', authenticateToken, getSales);
 router.get('/export', authenticateToken, exportSalesToCsv);
 // router.post('/sales', createSale);
 router.post('/', authenticateToken, createSale);
-router.patch('/:id', updateSaleStatus);
+router.patch('/:id', authenticateToken, updateSaleStatus);
 
 export default router;
